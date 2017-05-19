@@ -81,7 +81,7 @@ static int bcc_encode_dpdk  (__attribute__((unused)) struct rte_mbuf *adb)
 	///memcpy((unsigned char *)arg, (unsigned char *)adb,APEP_LEN_DPDK);
 	//printf("BCCencode success\n");
 	//rte_mempool_put(message_pool2, adb);
-	//rte_ring_enqueue(Ring_BCC_2_modulation, adb);
+	rte_ring_enqueue(Ring_BCC_2_modulation, adb);
 			// printf("sizeof Data_In_Scramble %d\n", strlen(Data_In_Scramble));
 	return 0;
 }
@@ -109,8 +109,8 @@ static int CSD_encode_dpdk (__attribute__((unused)) struct rte_mbuf *adb)
 
 	//printf("the number of free entries in the mempool after put %d\n", rte_mempool_free_count(mbuf_pool));
 	//printf("sizeof Data_In_CSD after put  %d\n", strlen(adb));
-	
-	//rte_pktmbuf_free(adb);
+	//rte_mempool_put(adb->pool, adb);
+	rte_pktmbuf_free(adb);
 	return 0;
 }
 
@@ -127,7 +127,7 @@ static int ReadData_Loop()
 	//Data=rte_pktmbuf_alloc(mbuf_pool);
 	while (!quit){
 		
-		if (((Data=rte_pktmbuf_alloc(mbuf_pool))==NULL)|(rte_ring_full(Ring_Beforescramble)==1))
+		if (((Data=rte_pktmbuf_alloc(mbuf_pool))==NULL)||(rte_ring_full(Ring_Beforescramble)==1))
 		{
 			// printf("Failed to send message - message discarded\n");
 			//__rte_mbuf_raw_free(Data);
@@ -158,7 +158,6 @@ static int ReadData(__attribute__((unused)) struct rte_mbuf *Data)
 	if(Data == NULL){
 		return 0;
 	}
-	
 	//if(Data->buf_len == 0){
 		//return 0;
 	//}
@@ -198,10 +197,11 @@ static int ReadData(__attribute__((unused)) struct rte_mbuf *Data)
 	//printf("ReadData success\n");
 	free(databits);
 	free(databits_temp);
-	//printf("data %d\n", strlen(rte_pktmbuf_mtod(Data,unsigned char *)));
+	printf("data %d\n", strlen(rte_pktmbuf_mtod(Data,unsigned char *)));
 	//printf("data_len %d\n", Data->data_len);
 	rte_ring_enqueue(Ring_Beforescramble, Data);
-	rte_pktmbuf_free(Data);
+	rte_mempool_put(Data->pool, Data);
+	//rte_pktmbuf_free(Data);
 	return 0;
 }
 static int GenDataAndScramble_Loop() 
@@ -255,7 +255,6 @@ static int BCC_encoder_Loop()
 		}
 		else 
 		{	
-			rte_ring_enqueue(Ring_BCC_2_modulation, Data_In_BCC);
 			// printf("sizeof Data_In_Scramble %d\n", strlen(Data_In_Scramble));
 			BCC_encoder_DPDK(Data_In_BCC);
 		}
@@ -325,7 +324,7 @@ void *Data_In_CSD=NULL;
 }
 static int Data_CSD_DPDK(__attribute__((unused)) struct rte_mbuf *Data_In)
 {
-/*		// printf("sizeof Data_In %d\n", strlen(Data_In));
+		/*printf("sizeof Data_In %d\n", strlen(Data_In));
 		if (rte_ring_enqueue(Ring_AfterCSD, Data_In) < 0) {//Ring_AfterCSD已满将Ring_AfterCSD队列元素全部出队
 		printf("sizeof Data_In_CSD befroe put  %d\n", strlen(Data_In));
 		rte_mempool_put(mbuf_pool, &Data_In);
