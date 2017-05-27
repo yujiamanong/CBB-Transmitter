@@ -40,19 +40,35 @@
 static const char *MBUF_POOL = "MBUF_POOL";
 
 static const char *Beforescramble = "Beforescramble";
-static const char *scramble_2_BCC = "scramble_2_BCC";
-static const char *BCC_2_modulation = "BCC_2_modulation";
-static const char *modulation_2_CSD = "modulation_2_CSD";
-static const char *AfterCSD = "AfterCSD";
+static const char *scramble_2_BCC1 = "scramble_2_BCC1";
+static const char *scramble_2_BCC2 = "scramble_2_BCC2";
+static const char *scramble_2_BCC3 = "scramble_2_BCC3";
+static const char *BCC_2_modulation1 = "BCC_2_modulation1";
+static const char *BCC_2_modulation2 = "BCC_2_modulation2";
+static const char *BCC_2_modulation3 = "BCC_2_modulation3";
+static const char *modulation_2_CSD1 = "modulation_2_CSD1";
+static const char *modulation_2_CSD2 = "modulation_2_CSD2";
+static const char *modulation_2_CSD3 = "modulation_2_CSD3";
+static const char *AfterCSD1 = "AfterCSD1";
+static const char *AfterCSD2 = "AfterCSD2";
+static const char *AfterCSD3 = "AfterCSD3";
 
 const unsigned APEP_LEN_DPDK = 512; 
 
 // static int i=0; 
 struct rte_ring *Ring_Beforescramble;
-struct rte_ring *Ring_scramble_2_BCC;
-struct rte_ring *Ring_BCC_2_modulation;
-struct rte_ring *Ring_modulation_2_CSD;
-struct rte_ring *Ring_AfterCSD;
+struct rte_ring *Ring_scramble_2_BCC1;
+struct rte_ring *Ring_scramble_2_BCC2;
+struct rte_ring *Ring_scramble_2_BCC3;
+struct rte_ring *Ring_BCC_2_modulation1;
+struct rte_ring *Ring_BCC_2_modulation2;
+struct rte_ring *Ring_BCC_2_modulation3;
+struct rte_ring *Ring_modulation_2_CSD1;
+struct rte_ring *Ring_modulation_2_CSD2;
+struct rte_ring *Ring_modulation_2_CSD3;
+struct rte_ring *Ring_AfterCSD1;
+struct rte_ring *Ring_AfterCSD2;
+struct rte_ring *Ring_AfterCSD3;
 
 struct rte_mempool *mbuf_pool;
 	
@@ -64,6 +80,9 @@ int BCC_encoder_DPDK_count = 0;
 int modulate_DPDK_count = 0;
 int Data_CSD_DPDK_count = 0;
 int CSD_encode_DPDK_count = 0;
+int retrieve_Loop1_count = 0;
+int retrieve_Loop2_count = 0;
+int retrieve_Loop3_count = 0;
 
 static int ReadData(__attribute__((unused)) struct rte_mbuf *Data_In);
 static int GenDataAndScramble_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In);
@@ -73,9 +92,16 @@ static int CSD_encode_dpdk (__attribute__((unused)) struct rte_mbuf *Data_In);
 
 static int ReadData_Loop();
 static int GenDataAndScramble_Loop();
-static int BCC_encoder_Loop();
-static int modulate_Loop();
-static int Data_CSD_Loop();  
+static int BCC_encoder_Loop1();
+static int BCC_encoder_Loop2();
+static int BCC_encoder_Loop3();
+static int modulate_Loop1();
+static int modulate_Loop2();
+static int modulate_Loop3();
+static int Data_CSD_Loop1();
+static int Data_CSD_Loop2();
+static int Data_CSD_Loop3();
+static int retrieve_Loop();
 
 
 static int ReadData(__attribute__((unused)) struct rte_mbuf *Data) 
@@ -109,81 +135,246 @@ static int ReadData(__attribute__((unused)) struct rte_mbuf *Data)
 
 static int GenDataAndScramble_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In) 
 {
+
+
+
+
 	printf("GenDataAndScramble_DPDK_count = %d\n", GenDataAndScramble_DPDK_count++);
-	rte_ring_enqueue(Ring_scramble_2_BCC, Data_In);
+
 	return 0;
 }
 
 static int BCC_encoder_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In)
 {
+
+
+
+
+
 	printf("BCC_encoder_DPDK_count = %d\n", BCC_encoder_DPDK_count++);
-	rte_ring_enqueue(Ring_BCC_2_modulation, Data_In);
+
 	return 0;
 }
 
 static int modulate_DPDK(__attribute__((unused)) struct rte_mbuf *Data_In)
 {
+
+
+
+
+
+
 	printf("modulate_DPDK_count = %d\n", modulate_DPDK_count++);
-	rte_ring_enqueue(Ring_modulation_2_CSD, Data_In);
+
 	return 0;
 }	
 
 static int CSD_encode_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In)
 {
 
+
+
+
+	
+
 	printf("CSD_encode_DPDK_count = %d\n", CSD_encode_DPDK_count++);
-	//rte_mempool_put(adb->pool, Data_In);
+
 	return 0;
 }
 
-static int Data_CSD_Loop() 
+static int retrieve_Loop(){
+	void *Data_In_CSD=NULL;
+	while (!quit)
+	{
+		if (rte_ring_dequeue(Ring_AfterCSD1, &Data_In_CSD) >= 0)
+		{
+			printf("retrieve_Loop1 = %d\n", retrieve_Loop1_count++);
+			rte_mempool_put(((struct rte_mbuf *)Data_In_CSD)->pool, Data_In_CSD);
+		}
+		else if(rte_ring_dequeue(Ring_AfterCSD2, &Data_In_CSD) >= 0)
+		{
+			printf("retrieve_Loop2 = %d\n", retrieve_Loop2_count++);
+			rte_mempool_put(((struct rte_mbuf *)Data_In_CSD)->pool, Data_In_CSD);
+		}
+		else if(rte_ring_dequeue(Ring_AfterCSD3, &Data_In_CSD) >= 0)
+		{
+			printf("retrieve_Loop3 = %d\n", retrieve_Loop3_count++);
+			rte_mempool_put(((struct rte_mbuf *)Data_In_CSD)->pool, Data_In_CSD);
+		}
+		else 
+		{
+			continue;
+		}
+	
+	}
+	return 0;	
+}
+
+
+static int Data_CSD_Loop1() 
 {
 	void *Data_In_CSD=NULL;
 	while (!quit)
 	{
-		if (rte_ring_dequeue(Ring_modulation_2_CSD, &Data_In_CSD) < 0)
+		if (rte_ring_dequeue(Ring_modulation_2_CSD1, &Data_In_CSD) >= 0)
 		{
-			continue;
+			CSD_encode_DPDK(Data_In_CSD);
+			rte_ring_enqueue(Ring_AfterCSD1, Data_In_CSD);	
 		}
 		else 
 		{
-			CSD_encode_DPDK(Data_In_CSD);
+			continue;
 		}
 	
 	}
 	return 0;
 }
 
-static int modulate_Loop() 
+static int Data_CSD_Loop2() 
+{
+	void *Data_In_CSD=NULL;
+	while (!quit)
+	{
+		if (rte_ring_dequeue(Ring_modulation_2_CSD2, &Data_In_CSD) >= 0)
+		{
+			CSD_encode_DPDK(Data_In_CSD);
+			rte_ring_enqueue(Ring_AfterCSD2, Data_In_CSD);
+		}
+		else 
+		{
+			continue;
+		}
+	}
+	return 0;
+}
+
+static int Data_CSD_Loop3() 
+{
+	void *Data_In_CSD=NULL;
+	while (!quit)
+	{
+		if (rte_ring_dequeue(Ring_modulation_2_CSD3, &Data_In_CSD) >= 0)
+		{
+			CSD_encode_DPDK(Data_In_CSD);
+			rte_ring_enqueue(Ring_AfterCSD3, Data_In_CSD);
+		}
+		else 
+		{
+			continue;
+		}
+	
+	}
+	return 0;
+}
+
+static int modulate_Loop1() 
 {
 	void *Data_In_modulate=NULL;
 	while (!quit)
 	{
-		if (rte_ring_dequeue(Ring_BCC_2_modulation, &Data_In_modulate) < 0)
+		if (rte_ring_dequeue(Ring_BCC_2_modulation1, &Data_In_modulate) >= 0)
 		{
-			continue;
+			modulate_DPDK(Data_In_modulate);
+			rte_ring_enqueue(Ring_modulation_2_CSD1, Data_In_modulate);
 		}
 		else 
 		{	
-			modulate_DPDK(Data_In_modulate);
+			continue;
 		}
 	}	
 	return 0;
 }
 
-static int BCC_encoder_Loop() 
+static int modulate_Loop2() 
+{
+	void *Data_In_modulate=NULL;
+	while (!quit)
+	{
+		if (rte_ring_dequeue(Ring_BCC_2_modulation2, &Data_In_modulate) >= 0)
+		{
+			modulate_DPDK(Data_In_modulate);
+			rte_ring_enqueue(Ring_modulation_2_CSD2, Data_In_modulate);
+		}
+		else 
+		{	
+			continue;
+		}
+	}	
+	return 0;
+}
+
+static int modulate_Loop3() 
+{
+	void *Data_In_modulate=NULL;
+	while (!quit)
+	{
+		if (rte_ring_dequeue(Ring_BCC_2_modulation3, &Data_In_modulate) >= 0)
+		{
+			modulate_DPDK(Data_In_modulate);
+			rte_ring_enqueue(Ring_modulation_2_CSD3, Data_In_modulate);
+		}
+		else 
+		{	
+			continue;
+		}
+	}	
+	return 0;
+}
+
+static int BCC_encoder_Loop1() 
 {
 
 	void *Data_In_BCC=NULL;
 	while (!quit)
 	{
-		if (rte_ring_dequeue(Ring_scramble_2_BCC, &Data_In_BCC) < 0)
+		if (rte_ring_dequeue(Ring_scramble_2_BCC1, &Data_In_BCC) >= 0)
 		{
-			continue;
+			BCC_encoder_DPDK(Data_In_BCC);
+			rte_ring_enqueue(Ring_BCC_2_modulation1, Data_In_BCC);
 		}
 		else 
 		{	
+			continue;
+		}
+	
+	}
+	return 0;
+}
+
+static int BCC_encoder_Loop2() 
+{
+
+	void *Data_In_BCC=NULL;
+	while (!quit)
+	{
+		if (rte_ring_dequeue(Ring_scramble_2_BCC2, &Data_In_BCC) >= 0)
+		{
 			BCC_encoder_DPDK(Data_In_BCC);
+			rte_ring_enqueue(Ring_BCC_2_modulation2, Data_In_BCC);
+		}
+		else 
+		{	
+			continue;
+		}
+	
+	}
+	return 0;
+}
+
+static int BCC_encoder_Loop3() 
+{
+
+	void *Data_In_BCC=NULL;
+	while (!quit)
+	{
+		if (rte_ring_dequeue(Ring_scramble_2_BCC3, &Data_In_BCC) >= 0)
+		{
+			BCC_encoder_DPDK(Data_In_BCC);
+			rte_ring_enqueue(Ring_BCC_2_modulation3, Data_In_BCC);
+		}
+		else 
+		{	
+			continue;
 		}
 	
 	}
@@ -193,15 +384,26 @@ static int BCC_encoder_Loop()
 static int GenDataAndScramble_Loop() 
 {
 	void *Data_In_Scramble=NULL;
+	int dis_count = 0;
 	while (!quit)
 	{
-		if (rte_ring_dequeue(Ring_Beforescramble, &Data_In_Scramble) < 0)
+		if (rte_ring_dequeue(Ring_Beforescramble, &Data_In_Scramble) >= 0)
 		{
-			continue;
+			dis_count++;
+			if(dis_count == 4){
+				dis_count = 1;
+			}
+			GenDataAndScramble_DPDK(Data_In_Scramble);
+			if(dis_count == 1)
+				rte_ring_enqueue(Ring_scramble_2_BCC1, Data_In_Scramble);
+			if(dis_count == 2)
+				rte_ring_enqueue(Ring_scramble_2_BCC2, Data_In_Scramble);
+			if(dis_count == 3)
+				rte_ring_enqueue(Ring_scramble_2_BCC3, Data_In_Scramble);
 		}
 		else 
 		{	
-			GenDataAndScramble_DPDK(Data_In_Scramble);
+			continue;
 		}
 	
 	}
@@ -213,13 +415,13 @@ static int ReadData_Loop()
 	struct rte_mbuf *Data =NULL;
 	while (!quit){
 		Data = rte_pktmbuf_alloc(mbuf_pool);
-		if (Data == NULL)
+		if (Data != NULL)
 		{
-			continue;
+			ReadData(Data);
 		}
 		else 
 		{
-			ReadData(Data);
+			continue;
 		}
 	
 	}
@@ -256,24 +458,48 @@ main(int argc, char **argv)
 	if (ret < 0)
 		rte_exit(EXIT_FAILURE, "Cannot init EAL\n");
 		Ring_Beforescramble = rte_ring_create(Beforescramble , ring_size, rte_socket_id(), flags);
-		Ring_scramble_2_BCC = rte_ring_create(scramble_2_BCC, ring_size, rte_socket_id(), flags);
-		Ring_BCC_2_modulation = rte_ring_create(BCC_2_modulation, ring_size, rte_socket_id(), flags);
-		Ring_modulation_2_CSD = rte_ring_create(modulation_2_CSD, ring_size, rte_socket_id(), flags);
-		Ring_AfterCSD = rte_ring_create(AfterCSD, ring_size, rte_socket_id(), flags);		
+		Ring_scramble_2_BCC1 = rte_ring_create(scramble_2_BCC1, ring_size, rte_socket_id(), flags);
+		Ring_scramble_2_BCC2 = rte_ring_create(scramble_2_BCC2, ring_size, rte_socket_id(), flags);
+		Ring_scramble_2_BCC3 = rte_ring_create(scramble_2_BCC3, ring_size, rte_socket_id(), flags);
+		Ring_BCC_2_modulation1 = rte_ring_create(BCC_2_modulation1, ring_size, rte_socket_id(), flags);
+		Ring_BCC_2_modulation2 = rte_ring_create(BCC_2_modulation2, ring_size, rte_socket_id(), flags);
+		Ring_BCC_2_modulation3 = rte_ring_create(BCC_2_modulation3, ring_size, rte_socket_id(), flags);
+		Ring_modulation_2_CSD1 = rte_ring_create(modulation_2_CSD1, ring_size, rte_socket_id(), flags);
+		Ring_modulation_2_CSD2 = rte_ring_create(modulation_2_CSD2, ring_size, rte_socket_id(), flags);
+		Ring_modulation_2_CSD3 = rte_ring_create(modulation_2_CSD3, ring_size, rte_socket_id(), flags);
+		Ring_AfterCSD1 = rte_ring_create(AfterCSD1, ring_size, rte_socket_id(), flags);
+		Ring_AfterCSD2 = rte_ring_create(AfterCSD2, ring_size, rte_socket_id(), flags);
+		Ring_AfterCSD3 = rte_ring_create(AfterCSD3, ring_size, rte_socket_id(), flags);
 	
 	if (Ring_Beforescramble == NULL)
 		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
-	if (Ring_scramble_2_BCC == NULL)
+	if (Ring_scramble_2_BCC1 == NULL)
 		rte_exit(EXIT_FAILURE, "Problem getting receiving ring\n");
-	if (Ring_BCC_2_modulation == NULL)
+	if (Ring_scramble_2_BCC2 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting receiving ring\n");
+	if (Ring_scramble_2_BCC3 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting receiving ring\n");
+	if (Ring_BCC_2_modulation1 == NULL)
 		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
-	if (Ring_modulation_2_CSD == NULL)
+	if (Ring_BCC_2_modulation2 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
+	if (Ring_BCC_2_modulation3 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
+	if (Ring_modulation_2_CSD1 == NULL)
 		rte_exit(EXIT_FAILURE, "Problem getting receiving ring\n");
-	if (Ring_AfterCSD == NULL)
+	if (Ring_modulation_2_CSD2 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting receiving ring\n");
+	if (Ring_modulation_2_CSD3 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting receiving ring\n");
+	if (Ring_AfterCSD1 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
+	if (Ring_AfterCSD2 == NULL)
+		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
+	if (Ring_AfterCSD3 == NULL)
 		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");
 	/* Creates a new mempool in memory to hold the mbufs. */
 	mbuf_pool = rte_pktmbuf_pool_create("MBUF_POOL", NUM_MBUFS,
-		MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE, rte_socket_id());
+		MBUF_CACHE_SIZE, 0, RTE_MBUF_DEFAULT_BUF_SIZE*16, rte_socket_id());
 
 	if (mbuf_pool == NULL)
 		rte_exit(EXIT_FAILURE, "Cannot create mbuf pool\n");
@@ -282,14 +508,16 @@ main(int argc, char **argv)
 
 	rte_eal_remote_launch(ReadData_Loop, NULL,1);
 	rte_eal_remote_launch(GenDataAndScramble_Loop, NULL, 2);
-	rte_eal_remote_launch(BCC_encoder_Loop, NULL, 3);
-	//rte_eal_remote_launch(BCC_encoder_Loop, NULL,4);
-	//rte_eal_remote_launch(BCC_encoder_Loop, NULL, 5);
-	rte_eal_remote_launch(modulate_Loop, NULL, 4);
-	//rte_eal_remote_launch(modulate_Loop, NULL,7);
-	//rte_eal_remote_launch(modulate_Loop, NULL,8);
-	rte_eal_remote_launch(Data_CSD_Loop, NULL,5);
-	//Data_CSD_Loop(NULL);
+	rte_eal_remote_launch(BCC_encoder_Loop1, NULL, 3);
+	rte_eal_remote_launch(BCC_encoder_Loop2, NULL,4);
+	rte_eal_remote_launch(BCC_encoder_Loop3, NULL, 5);
+	rte_eal_remote_launch(modulate_Loop1, NULL, 6);
+	rte_eal_remote_launch(modulate_Loop2, NULL,7);
+	rte_eal_remote_launch(modulate_Loop3, NULL,8);
+	rte_eal_remote_launch(Data_CSD_Loop1, NULL,9);
+	rte_eal_remote_launch(Data_CSD_Loop2, NULL,10);
+	rte_eal_remote_launch(Data_CSD_Loop3, NULL,11);
+	rte_eal_remote_launch(retrieve_Loop, NULL,12);
 	rte_eal_mp_wait_lcore();
 	return 0;
 }
