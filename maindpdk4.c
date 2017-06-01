@@ -27,15 +27,11 @@
 #include <cmdline.h>
 #include <rte_mbuf.h>
 
-<<<<<<< HEAD
-
-=======
 #include <time.h> 
 
 #include "allHeaders.h"
 
 #define RUNMAINDPDK
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 #ifdef RUNMAINDPDK
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
@@ -80,17 +76,6 @@ struct rte_mempool *mbuf_pool;
 	
 volatile int quit = 0;
 
-<<<<<<< HEAD
-int ReadData_count = 0;
-int GenDataAndScramble_DPDK_count = 0;
-int BCC_encoder_DPDK_count = 0;
-int modulate_DPDK_count = 0;
-int Data_CSD_DPDK_count = 0;
-int CSD_encode_DPDK_count = 0;
-int retrieve_Loop1_count = 0;
-int retrieve_Loop2_count = 0;
-int retrieve_Loop3_count = 0;
-=======
 long int ReadData_count = 0;
 long int GenDataAndScramble_DPDK_count = 0;
 long int BCC_encoder_DPDK_count = 0;
@@ -106,7 +91,6 @@ int N_CBPS, N_SYM, ScrLength, valid_bits;
 struct timespec time1,time2,time_diff;	/** < Test the running time. >*/
 int time_test_flag = 0;
 struct timespec diff(struct timespec start, struct timespec end);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 
 static int ReadData(__attribute__((unused)) struct rte_mbuf *Data_In);
 static int GenDataAndScramble_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In);
@@ -127,8 +111,6 @@ static int Data_CSD_Loop2();
 static int Data_CSD_Loop3();
 static int retrieve_Loop();
 
-<<<<<<< HEAD
-=======
 struct timespec diff(struct timespec start, struct timespec end)
 {
     struct  timespec temp;
@@ -142,20 +124,10 @@ struct timespec diff(struct timespec start, struct timespec end)
      }
      return temp;
 }
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 
 static int ReadData(__attribute__((unused)) struct rte_mbuf *Data) 
 {
 	//printf("sizeof(struct rte_mbuf) = %d\n", sizeof(struct rte_mbuf));
-<<<<<<< HEAD
-	printf("Data->buflen = %d\n",Data->buf_len);
-	//printf("Data->priv_size = %d\n",Data->priv_size);
-	printf("ReadData_count = %d\n", ReadData_count++);
-	//printf("Data->data_off = %d\n",Data->data_off);
-	FILE *fp=fopen("send_din_dec.txt","rt");
-	unsigned char* databits=(unsigned char*)malloc(APEP_LEN_DPDK*sizeof(unsigned char));
-	unsigned char* databits_temp=(unsigned char*)malloc(APEP_LEN_DPDK*sizeof(unsigned char));
-=======
 	//printf("Data->buflen = %d\n",Data->buf_len);
 	//printf("Data->priv_size = %d\n",Data->priv_size);
 	//printf("ReadData_count = %d\n", ReadData_count++);
@@ -171,7 +143,6 @@ static int ReadData(__attribute__((unused)) struct rte_mbuf *Data)
 	FILE *fp=fopen("send_din_dec.txt","rt");
 	unsigned char* databits=(unsigned char*)malloc(APEP_LEN_DPDK*sizeof(unsigned char));
 	//unsigned char* databits_temp=(unsigned char*)malloc(APEP_LEN_DPDK*sizeof(unsigned char));
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 	if(databits == NULL){
 		printf("error");
 		return 0;
@@ -182,74 +153,40 @@ static int ReadData(__attribute__((unused)) struct rte_mbuf *Data)
 	    fscanf(fp,"%ud",&datatmp);
 	    databits[i]=datatmp&0x000000FF;
 	}
-<<<<<<< HEAD
-	//memcpy(rte_pktmbuf_mtod(Data,unsigned char *), databits, APEP_LEN_DPDK);
-	//memcpy(databits_temp, databits, APEP_LEN_DPDK);//将文件读取数据复制给Data即原始数据流
-	fclose(fp);
-	free(databits);
-	free(databits_temp);
-=======
 	memcpy(rte_pktmbuf_mtod(Data,unsigned char *), databits, APEP_LEN_DPDK);
 	//memcpy(databits_temp, databits, APEP_LEN_DPDK);//将文件读取数据复制给Data即原始数据流
 	fclose(fp);
 	free(databits);
 	//free(databits_temp);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 	rte_ring_enqueue(Ring_Beforescramble, Data);
 	return 0;
 }
 
 static int GenDataAndScramble_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In) 
 {
-<<<<<<< HEAD
-
-
-
-
-	printf("GenDataAndScramble_DPDK_count = %d\n", GenDataAndScramble_DPDK_count++);
-=======
 	//printf("GenDataAndScramble_DPDK_count = %ld\n", GenDataAndScramble_DPDK_count++);
 	
 	unsigned char *databits = rte_pktmbuf_mtod(Data_In, unsigned char *);
 	unsigned char *data_scramble = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, MBUF_CACHE_SIZE/2*1024);
 	GenDataAndScramble(data_scramble, ScrLength, databits, valid_bits);	
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 
 	return 0;
 }
 
 static int BCC_encoder_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In)
 {
-<<<<<<< HEAD
-
-
-
-
-
-	printf("BCC_encoder_DPDK_count = %d\n", BCC_encoder_DPDK_count++);
-=======
 	//printf("BCC_encoder_DPDK_count = %ld\n", BCC_encoder_DPDK_count++);
 
 	int CodeLength = N_SYM*N_CBPS/N_STS;
 	unsigned char *data_scramble = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, MBUF_CACHE_SIZE/2*1024);
 	unsigned char* BCCencodeout = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, 0);
 	BCC_encoder_OPT(data_scramble, ScrLength, N_SYM, &BCCencodeout, CodeLength);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 
 	return 0;
 }
 
 static int modulate_DPDK(__attribute__((unused)) struct rte_mbuf *Data_In)
 {
-<<<<<<< HEAD
-
-
-
-
-
-
-	printf("modulate_DPDK_count = %d\n", modulate_DPDK_count++);
-=======
 	//printf("modulate_DPDK_count = %ld\n", modulate_DPDK_count++);
 
 	unsigned char* BCCencodeout = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, 0);
@@ -258,23 +195,12 @@ static int modulate_DPDK(__attribute__((unused)) struct rte_mbuf *Data_In)
 	complex32 *subcar_map_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, 0);
 
 	modulate_mapping(BCCencodeout, &stream_interweave_dataout, &subcar_map_data);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 
 	return 0;
 }	
 
 static int CSD_encode_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In)
 {
-<<<<<<< HEAD
-
-
-
-
-	
-
-	printf("CSD_encode_DPDK_count = %d\n", CSD_encode_DPDK_count++);
-
-=======
 	int i;
 	CSD_encode_DPDK_count++;
 	//printf("CSD_encode_DPDK_count = %ld\n", CSD_encode_DPDK_count++);
@@ -300,7 +226,6 @@ static int CSD_encode_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In)
 		printf("Running time # %ld.%ld Seconds \n",time_diff.tv_sec, time_diff.tv_nsec);
 		//printf("%.24s %ld Nanoseconds \n", ctime(&ts.tv_sec), ts.tv_nsec); 
 	}
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 	return 0;
 }
 
@@ -310,29 +235,17 @@ static int retrieve_Loop(){
 	{
 		if (rte_ring_dequeue(Ring_AfterCSD1, &Data_In_CSD) >= 0)
 		{
-<<<<<<< HEAD
-			printf("retrieve_Loop1 = %d\n", retrieve_Loop1_count++);
-=======
 			//printf("retrieve_Loop1 = %ld\n", retrieve_Loop1_count++);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 			rte_mempool_put(((struct rte_mbuf *)Data_In_CSD)->pool, Data_In_CSD);
 		}
 		else if(rte_ring_dequeue(Ring_AfterCSD2, &Data_In_CSD) >= 0)
 		{
-<<<<<<< HEAD
-			printf("retrieve_Loop2 = %d\n", retrieve_Loop2_count++);
-=======
 			//printf("retrieve_Loop2 = %ld\n", retrieve_Loop2_count++);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 			rte_mempool_put(((struct rte_mbuf *)Data_In_CSD)->pool, Data_In_CSD);
 		}
 		else if(rte_ring_dequeue(Ring_AfterCSD3, &Data_In_CSD) >= 0)
 		{
-<<<<<<< HEAD
-			printf("retrieve_Loop3 = %d\n", retrieve_Loop3_count++);
-=======
 			//printf("retrieve_Loop3 = %ld\n", retrieve_Loop3_count++);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 			rte_mempool_put(((struct rte_mbuf *)Data_In_CSD)->pool, Data_In_CSD);
 		}
 		else 
@@ -461,10 +374,7 @@ static int BCC_encoder_Loop1()
 	void *Data_In_BCC=NULL;
 	while (!quit)
 	{
-<<<<<<< HEAD
-=======
 
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 		if (rte_ring_dequeue(Ring_scramble_2_BCC1, &Data_In_BCC) >= 0)
 		{
 			BCC_encoder_DPDK(Data_In_BCC);
@@ -578,15 +488,6 @@ main(int argc, char **argv)
 	const unsigned priv_data_sz = 0;
 	int ret;
 	// 运行一次得到preamble和HeLTF.
-<<<<<<< HEAD
-	//generatePreambleAndHeLTF_csd()
-	// 运行一次得到比特干扰码表。
-	//Creatnewchart();
-	// 运行一次得到BCC编码表。
-	//init_BCCencode_table();
-	// 运行一次得到生成导频的分流交织表
-	//initial_streamwave_table();
-=======
 	generatePreambleAndHeLTF_csd();
 	// 运行一次得到比特干扰码表。
 	Creatnewchart();
@@ -594,16 +495,11 @@ main(int argc, char **argv)
 	init_BCCencode_table();
 	// 运行一次得到生成导频的分流交织表
 	initial_streamwave_table();
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 	// 运行一次得到CSD表。
 	//initcsdTableForHeLTF();
 	// 初始化函数，计算OFDM符号个数，字节长度
 	//int N_CBPS, N_SYM, ScrLength, valid_bits;
-<<<<<<< HEAD
-   // GenInit(&N_CBPS, &N_SYM, &ScrLength, &valid_bits);
-=======
    	GenInit(&N_CBPS, &N_SYM, &ScrLength, &valid_bits);
->>>>>>> 93d2a72abf30e152f86516b58ad2cd3a9a7435e3
 	///////////////////////////////////////////////////////////////////////////////////
 	//unsigned lcore_id;
 	ret = rte_eal_init(argc, argv);
