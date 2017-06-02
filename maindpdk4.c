@@ -250,7 +250,7 @@ static int Data_CSD_Loop1()
 		{
 			CSD_encode_DPDK_count++;
 			CSD_encode_DPDK(Data_In_CSD);
-			if(CSD_encode_DPDK_count >= 100000)
+			if(CSD_encode_DPDK_count >= 1000000)
 			{
 				quit = 1;
 
@@ -385,13 +385,25 @@ static int BCC_encoder_Loop1()
 {
 
 	void *Data_In_BCC=NULL;
+	int dis_count = 0;
 	while (!quit)
 	{
 
 		if (rte_ring_dequeue(Ring_scramble_2_BCC1, &Data_In_BCC) >= 0)
 		{
+			dis_count++;
+			if(dis_count == 4){
+				dis_count = 1;
+			}
 			BCC_encoder_DPDK(Data_In_BCC);
-			rte_ring_enqueue(Ring_BCC_2_modulation1, Data_In_BCC);
+			if(dis_count == 1)
+				rte_ring_enqueue(Ring_BCC_2_modulation1, Data_In_BCC);
+			else if(dis_count == 2)
+				rte_ring_enqueue(Ring_BCC_2_modulation2, Data_In_BCC);
+			else if(dis_count == 3)
+				rte_ring_enqueue(Ring_BCC_2_modulation3, Data_In_BCC);
+			else
+				rte_ring_enqueue(Ring_BCC_2_modulation1, Data_In_BCC);
 		}
 		else 
 		{	
@@ -406,12 +418,24 @@ static int BCC_encoder_Loop2()
 {
 
 	void *Data_In_BCC=NULL;
+	int dis_count = 0;
 	while (!quit)
 	{
 		if (rte_ring_dequeue(Ring_scramble_2_BCC2, &Data_In_BCC) >= 0)
 		{
+			dis_count++;
+			if(dis_count == 4){
+				dis_count = 1;
+			}
 			BCC_encoder_DPDK(Data_In_BCC);
-			rte_ring_enqueue(Ring_BCC_2_modulation2, Data_In_BCC);
+			if(dis_count == 1)
+				rte_ring_enqueue(Ring_BCC_2_modulation4, Data_In_BCC);
+			else if(dis_count == 2)
+				rte_ring_enqueue(Ring_BCC_2_modulation5, Data_In_BCC);
+			else if(dis_count == 3)
+				rte_ring_enqueue(Ring_BCC_2_modulation6, Data_In_BCC);
+			else
+				rte_ring_enqueue(Ring_BCC_2_modulation4, Data_In_BCC);
 		}
 		else 
 		{	
