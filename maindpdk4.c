@@ -31,14 +31,14 @@
 
 #include "allHeaders.h"
 
-#define RUNMAINDPDK
+//#define RUNMAINDPDK
 #ifdef RUNMAINDPDK
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
 // #define MEMPOOL_F_SP_PUT         0x0
 
-#define MBUF_CACHE_SIZE 32
-#define NUM_MBUFS 511
+#define MBUF_CACHE_SIZE 128
+#define NUM_MBUFS 2047
 static const char *MBUF_POOL = "MBUF_POOL";
 
 static const char *Beforescramble = "Beforescramble";
@@ -89,6 +89,19 @@ long int modulate_DPDK_count = 0;
 long int Data_CSD_DPDK_count = 0;
 long int CSD_encode_DPDK_count = 0;
 long int retrieve_Loop1_count = 0;
+
+long int Data_CSD_Loop1_count = 0;
+long int modulate_Loop1_count = 0;
+long int modulate_Loop2_count = 0;
+long int modulate_Loop3_count = 0;
+long int modulate_Loop4_count = 0;
+long int modulate_Loop5_count = 0;
+long int modulate_Loop6_count = 0;
+long int BCC_encoder_Loop1_count = 0;
+long int BCC_encoder_Loop2_count = 0;
+long int GenDataAndScramble_Loop_count = 0;
+long int ReadData_Loop_count = 0;
+
 
 int N_CBPS, N_SYM, ScrLength, valid_bits;
 
@@ -169,7 +182,7 @@ static int GenDataAndScramble_DPDK (__attribute__((unused)) struct rte_mbuf *Dat
 	//printf("GenDataAndScramble_DPDK_count = %ld\n", GenDataAndScramble_DPDK_count++);
 	
 	unsigned char *databits = rte_pktmbuf_mtod(Data_In, unsigned char *);
-	unsigned char *data_scramble = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, MBUF_CACHE_SIZE/2*1024);
+	unsigned char *data_scramble = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, RTE_MBUF_DEFAULT_BUF_SIZE*8);
 	GenDataAndScramble(data_scramble, ScrLength, databits, valid_bits);	
 
 	return 0;
@@ -180,7 +193,7 @@ static int BCC_encoder_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In)
 	//printf("BCC_encoder_DPDK_count = %ld\n", BCC_encoder_DPDK_count++);
 
 	int CodeLength = N_SYM*N_CBPS/N_STS;
-	unsigned char *data_scramble = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, MBUF_CACHE_SIZE/2*1024);
+	unsigned char *data_scramble = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, RTE_MBUF_DEFAULT_BUF_SIZE*8);
 	unsigned char* BCCencodeout = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, 0);
 	BCC_encoder_OPT(data_scramble, ScrLength, N_SYM, &BCCencodeout, CodeLength);
 
@@ -192,8 +205,8 @@ static int modulate_DPDK(__attribute__((unused)) struct rte_mbuf *Data_In)
 	//printf("modulate_DPDK_count = %ld\n", modulate_DPDK_count++);
 
 	unsigned char* BCCencodeout = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, 0);
-	unsigned char *stream_interweave_dataout = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, MBUF_CACHE_SIZE/2*1024);
-	//complex32 *subcar_map_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, MBUF_CACHE_SIZE/2*1024);
+	unsigned char *stream_interweave_dataout = rte_pktmbuf_mtod_offset(Data_In, unsigned char *, RTE_MBUF_DEFAULT_BUF_SIZE*8);
+	//complex32 *subcar_map_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, RTE_MBUF_DEFAULT_BUF_SIZE*8);
 	complex32 *subcar_map_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, 0);
 
 	modulate_mapping(BCCencodeout, &stream_interweave_dataout, &subcar_map_data);
@@ -207,8 +220,8 @@ static int CSD_encode_DPDK (__attribute__((unused)) struct rte_mbuf *Data_In)
 	//CSD_encode_DPDK_count++;
 	//printf("CSD_encode_DPDK_count = %ld\n", CSD_encode_DPDK_count++);
 	//complex32 *csd_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, 0);
-	//complex32 *subcar_map_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, MBUF_CACHE_SIZE/2*1024);
-	complex32 *csd_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, MBUF_CACHE_SIZE/2*1024);
+	//complex32 *subcar_map_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, RTE_MBUF_DEFAULT_BUF_SIZE*8);
+	complex32 *csd_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, RTE_MBUF_DEFAULT_BUF_SIZE*8);
 	complex32 *subcar_map_data = rte_pktmbuf_mtod_offset(Data_In, complex32 *, 0);
 	//Data_CSD(&subcar_map_data, N_SYM, &csd_data);
 	
@@ -235,7 +248,6 @@ static int retrieve_Loop(){
 	return 0;	
 }
 
-
 static int Data_CSD_Loop1() 
 {
 	void *Data_In_CSD=NULL;
@@ -250,7 +262,7 @@ static int Data_CSD_Loop1()
 		{
 			CSD_encode_DPDK_count++;
 			CSD_encode_DPDK(Data_In_CSD);
-			if(CSD_encode_DPDK_count >= 1000000)
+			if(CSD_encode_DPDK_count >= 100000)
 			{
 				quit = 1;
 
@@ -260,6 +272,17 @@ static int Data_CSD_Loop1()
 				printf("Start time # %.24s %ld Nanoseconds \n",ctime(&time1.tv_sec), time1.tv_nsec);
 				printf("Stop time # %.24s %ld Nanoseconds \n",ctime(&time2.tv_sec), time2.tv_nsec);
 				printf("Running time # %ld.%ld Seconds \n",time_diff.tv_sec, time_diff.tv_nsec);
+				printf("Data_CSD_Loop1_count = %ld\n", Data_CSD_Loop1_count);
+				printf("modulate_Loop1_count = %ld\n", modulate_Loop1_count);
+				printf("modulate_Loop2_count = %ld\n", modulate_Loop2_count);
+				printf("modulate_Loop3_count = %ld\n", modulate_Loop3_count);
+				printf("modulate_Loop4_count = %ld\n", modulate_Loop4_count);
+				printf("modulate_Loop5_count = %ld\n", modulate_Loop5_count);
+				printf("modulate_Loop6_count = %ld\n", modulate_Loop6_count);
+				printf("BCC_encoder_Loop1_count = %ld\n", BCC_encoder_Loop1_count);
+				printf("BCC_encoder_Loop2_count = %ld\n", BCC_encoder_Loop2_count);
+				printf("GenDataAndScramble_Loop_count = %ld\n", GenDataAndScramble_Loop_count);
+				printf("ReadData_Loop_count = %ld\n", ReadData_Loop_count);
 				//printf("%.24s %ld Nanoseconds \n", ctime(&ts.tv_sec), ts.tv_nsec); 
 			}
 			//rte_ring_enqueue(Ring_AfterCSD1, Data_In_CSD);	
@@ -267,6 +290,7 @@ static int Data_CSD_Loop1()
 		}
 		else 
 		{
+			Data_CSD_Loop1_count++;
 			continue;
 		}
 	
@@ -286,6 +310,7 @@ static int modulate_Loop1()
 		}
 		else 
 		{	
+			modulate_Loop1_count++;
 			continue;
 		}
 	}	
@@ -304,6 +329,7 @@ static int modulate_Loop2()
 		}
 		else 
 		{	
+			modulate_Loop2_count++;
 			continue;
 		}
 	}	
@@ -322,6 +348,7 @@ static int modulate_Loop3()
 		}
 		else 
 		{	
+			modulate_Loop3_count++;
 			continue;
 		}
 	}	
@@ -340,6 +367,7 @@ static int modulate_Loop4()
 		}
 		else 
 		{	
+			modulate_Loop4_count++;
 			continue;
 		}
 	}	
@@ -358,6 +386,7 @@ static int modulate_Loop5()
 		}
 		else 
 		{	
+			modulate_Loop5_count++;
 			continue;
 		}
 	}	
@@ -375,6 +404,7 @@ static int modulate_Loop6()
 		}
 		else 
 		{	
+			modulate_Loop6_count++;
 			continue;
 		}
 	}	
@@ -407,6 +437,7 @@ static int BCC_encoder_Loop1()
 		}
 		else 
 		{	
+			BCC_encoder_Loop1_count++;
 			continue;
 		}
 	
@@ -439,6 +470,7 @@ static int BCC_encoder_Loop2()
 		}
 		else 
 		{	
+			BCC_encoder_Loop2_count++;
 			continue;
 		}
 	
@@ -466,6 +498,7 @@ static int GenDataAndScramble_Loop()
 		}
 		else 
 		{	
+			GenDataAndScramble_Loop_count++;
 			continue;
 		}
 	
@@ -487,6 +520,7 @@ static int ReadData_Loop()
 		}
 		else 
 		{
+			ReadData_Loop_count++;
 			continue;
 		}
 	
@@ -500,9 +534,9 @@ int
 main(int argc, char **argv)
 {
 	const unsigned flags = 0;
-	const unsigned ring_size = 512;
+	const unsigned ring_size = 2048;
 	const unsigned pool_size = 256;
-	const unsigned pool_cache = 32;
+	const unsigned pool_cache = 128;
 	const unsigned priv_data_sz = 0;
 	int ret;
 	// 运行一次得到preamble和HeLTF.
@@ -523,22 +557,22 @@ main(int argc, char **argv)
 	ret = rte_eal_init(argc, argv);
 	if (ret < 0)
 		rte_exit(EXIT_FAILURE, "Cannot init EAL\n");
-		Ring_Beforescramble = rte_ring_create(Beforescramble , ring_size, rte_socket_id(), flags);
-		Ring_scramble_2_BCC1 = rte_ring_create(scramble_2_BCC1, ring_size, rte_socket_id(), flags);
-		Ring_scramble_2_BCC2 = rte_ring_create(scramble_2_BCC2, ring_size, rte_socket_id(), flags);
-		Ring_BCC_2_modulation1 = rte_ring_create(BCC_2_modulation1, ring_size, rte_socket_id(), flags);
-		Ring_BCC_2_modulation2 = rte_ring_create(BCC_2_modulation2, ring_size, rte_socket_id(), flags);
-		Ring_BCC_2_modulation3 = rte_ring_create(BCC_2_modulation3, ring_size, rte_socket_id(), flags);
-		Ring_BCC_2_modulation4 = rte_ring_create(BCC_2_modulation4, ring_size, rte_socket_id(), flags);
-		Ring_BCC_2_modulation5 = rte_ring_create(BCC_2_modulation5, ring_size, rte_socket_id(), flags);
-		Ring_BCC_2_modulation6 = rte_ring_create(BCC_2_modulation6, ring_size, rte_socket_id(), flags);
-		Ring_modulation_2_CSD1 = rte_ring_create(modulation_2_CSD1, ring_size, rte_socket_id(), flags);
-		Ring_modulation_2_CSD2 = rte_ring_create(modulation_2_CSD2, ring_size, rte_socket_id(), flags);
-		Ring_modulation_2_CSD3 = rte_ring_create(modulation_2_CSD3, ring_size, rte_socket_id(), flags);
-		Ring_modulation_2_CSD4 = rte_ring_create(modulation_2_CSD4, ring_size, rte_socket_id(), flags);
-		Ring_modulation_2_CSD5 = rte_ring_create(modulation_2_CSD5, ring_size, rte_socket_id(), flags);
-		Ring_modulation_2_CSD6 = rte_ring_create(modulation_2_CSD6, ring_size, rte_socket_id(), flags);
-		Ring_AfterCSD1 = rte_ring_create(AfterCSD1, ring_size, rte_socket_id(), flags);
+		Ring_Beforescramble = rte_ring_create(Beforescramble , ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_scramble_2_BCC1 = rte_ring_create(scramble_2_BCC1, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_scramble_2_BCC2 = rte_ring_create(scramble_2_BCC2, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_BCC_2_modulation1 = rte_ring_create(BCC_2_modulation1, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_BCC_2_modulation2 = rte_ring_create(BCC_2_modulation2, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_BCC_2_modulation3 = rte_ring_create(BCC_2_modulation3, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_BCC_2_modulation4 = rte_ring_create(BCC_2_modulation4, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_BCC_2_modulation5 = rte_ring_create(BCC_2_modulation5, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_BCC_2_modulation6 = rte_ring_create(BCC_2_modulation6, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_modulation_2_CSD1 = rte_ring_create(modulation_2_CSD1, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_modulation_2_CSD2 = rte_ring_create(modulation_2_CSD2, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_modulation_2_CSD3 = rte_ring_create(modulation_2_CSD3, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_modulation_2_CSD4 = rte_ring_create(modulation_2_CSD4, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_modulation_2_CSD5 = rte_ring_create(modulation_2_CSD5, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_modulation_2_CSD6 = rte_ring_create(modulation_2_CSD6, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
+		Ring_AfterCSD1 = rte_ring_create(AfterCSD1, ring_size, rte_socket_id(), RING_F_SP_ENQ|RING_F_SC_DEQ);
 	
 	if (Ring_Beforescramble == NULL)
 		rte_exit(EXIT_FAILURE, "Problem getting sending ring\n");

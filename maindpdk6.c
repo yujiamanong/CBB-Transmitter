@@ -31,7 +31,7 @@
 
 #include "allHeaders.h"
 
-#define RUNMAINDPDK
+//#define RUNMAINDPDK
 #ifdef RUNMAINDPDK
 
 #define RTE_LOGTYPE_APP RTE_LOGTYPE_USER1
